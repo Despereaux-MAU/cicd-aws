@@ -37,7 +37,7 @@ jobs:
           strip_components: 2
 
       - name: SSH Commands
-        uses: appleboy/ssh-action@v1.1.0
+        uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ec2-user
@@ -45,5 +45,11 @@ jobs:
           port: 22
           script_stop: true
           script: |
-            kill -9 $(ps -ef | grep java | head -n 1 | awk '{print $2}')
-            nohup java -jar *.jar 1> /dev/null 2>&1 &
+            sudo yum update -y && sudo yum install -y java-21-amazon-corretto
+            for pid in $(pgrep java); do
+              if ps -p $pid -o args= | grep -q 'java -jar'; then
+                echo "Java process with 'java -jar' found (PID: $pid). Terminating..."
+                kill -9 $pid
+              fi
+            done
+            echo "nohup java -jar ~/*.jar > ~/app.log 2>&1 &" | at now
